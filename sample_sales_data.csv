@@ -1,0 +1,69 @@
+transaction_date,product_name,category,quantity,unit_price,cost_price,customer_name,region
+2024-01-01,Laptop Pro 15,Electronics,2,1200.00,750.00,Acme Corp,North
+2024-01-01,Wireless Mouse,Accessories,15,25.00,12.00,Tech Solutions,East
+2024-01-02,Mechanical Keyboard,Accessories,8,85.00,45.00,Digital Hub,West
+2024-01-02,27" Monitor,Electronics,4,350.00,215.00,Innovate Inc,South
+2024-01-03,USB-C Hub,Accessories,12,45.00,22.00,Cloud Systems,North
+2024-01-03,Laptop Pro 15,Electronics,3,1200.00,750.00,Smart Tech,East
+2024-01-04,Noise-Cancelling Headphones,Electronics,6,180.00,95.00,Audio Plus,West
+2024-01-04,Webcam HD,Electronics,10,75.00,38.00,Video Pro,South
+2024-01-05,Laptop Sleeve,Accessories,20,30.00,15.00,Office Depot,North
+2024-01-05,External SSD 1TB,Electronics,5,120.00,65.00,Data Storage Co,East
+2024-01-06,Wireless Keyboard,Accessories,7,65.00,32.00,Tech Solutions,West
+2024-01-06,Gaming Mouse,Accessories,9,55.00,28.00,Game Central,South
+2024-01-07,Laptop Pro 15,Electronics,1,1200.00,750.00,Enterprise Ltd,North
+2024-01-07,Standing Desk Mat,Accessories,15,40.00,20.00,Ergo Works,East
+2024-01-08,USB Flash Drive 256GB,Accessories,25,18.00,8.00,Quick Store,West
+2024-01-08,27" Monitor,Electronics,2,350.00,215.00,Display World,South
+2024-01-09,Bluetooth Speaker,Electronics,8,95.00,48.00,Sound Systems,North
+2024-01-09,Phone Stand,Accessories,30,15.00,7.00,Mobile Accessories,East
+2024-01-10,Laptop Backpack,Accessories,12,75.00,38.00,Travel Gear,West
+2024-01-10,Portable Charger,Electronics,18,40.00,20.00,Power Tech,South
+2024-01-11,Docking Station,Electronics,4,180.00,95.00,Workspace Solutions,North
+2024-01-11,Ergonomic Mouse Pad,Accessories,22,20.00,9.00,Comfort Plus,East
+2024-01-12,4K Webcam,Electronics,5,150.00,78.00,Video Pro,West
+2024-01-12,Laptop Pro 15,Electronics,2,1200.00,750.00,Tech Innovators,South
+2024-01-13,Wireless Presenter,Accessories,6,55.00,28.00,Presentation Pro,North
+2024-01-13,Cable Organizer Set,Accessories,35,12.00,5.00,Tidy Tech,East
+2024-01-14,27" Monitor,Electronics,3,350.00,215.00,Display World,West
+2024-01-14,Desk Lamp LED,Accessories,10,42.00,21.00,Bright Light,South
+2024-01-15,Laptop Cooling Pad,Accessories,14,35.00,17.00,Cool Systems,North
+2024-01-15,Portable SSD 500GB,Electronics,7,85.00,45.00,Data Storage Co,East
+2024-01-16,Wireless Earbuds,Electronics,12,120.00,60.00,Audio Plus,West
+2024-01-16,Screen Cleaner Kit,Accessories,28,10.00,4.00,Clean Tech,South
+2024-01-17,Graphics Tablet,Electronics,3,200.00,105.00,Design Studio,North
+2024-01-17,USB Hub 7-Port,Accessories,16,30.00,14.00,Port Solutions,East
+2024-01-18,Laptop Pro 15,Electronics,4,1200.00,750.00,Corporate Systems,West
+2024-01-18,Wireless Charger Pad,Electronics,11,35.00,17.00,Power Tech,South
+2024-01-19,Mechanical Keyboard RGB,Accessories,5,125.00,62.00,Gaming Gear,North
+2024-01-19,Monitor Arm Mount,Accessories,8,75.00,38.00,Ergo Works,East
+2024-01-20,External Hard Drive 2TB,Electronics,6,95.00,48.00,Data Storage Co,West
+2024-01-20,Laptop Privacy Filter,Accessories,13,40.00,20.00,Security Plus,South
+2024-01-21,27" Monitor,Electronics,5,350.00,215.00,Display World,North
+2024-01-21,Tablet Stand,Accessories,18,25.00,12.00,Mobile Accessories,East
+2024-01-22,Noise-Cancelling Headphones,Electronics,4,180.00,95.00,Audio Plus,West
+2024-01-22,Laptop Stand Aluminum,Accessories,9,55.00,27.00,Ergo Works,South
+2024-01-23,Wireless Mouse Vertical,Accessories,11,45.00,22.00,Comfort Plus,North
+2024-01-23,HDMI Cable 10ft,Accessories,24,15.00,6.00,Cable Connect,East
+2024-01-24,Laptop Pro 15,Electronics,3,1200.00,750.00,Tech Enterprises,West
+2024-01-24,Drawing Tablet,Electronics,2,250.00,130.00,Design Studio,South
+2024-01-25,Bluetooth Keyboard,Accessories,7,68.00,34.00,Wireless World,North
+2024-01-25,27" Monitor,Electronics,2,350.00,215.00,Display World,East
+2024-01-26,USB Microphone,Electronics,4,85.00,43.00,Audio Plus,West
+2024-01-26,Laptop Bag Professional,Accessories,10,65.00,32.00,Travel Gear,South
+2024-01-27,Smart Pen Digital,Electronics,6,95.00,48.00,Note Tech,North
+2024-01-27,Cable Management Box,Accessories,15,22.00,10.00,Tidy Tech,East
+2024-01-28,Laptop Pro 15,Electronics,2,1200.00,750.00,Business Solutions,West
+2024-01-28,Monitor Light Bar,Electronics,8,75.00,38.00,Bright Light,South
+2024-01-29,Trackball Mouse,Accessories,5,65.00,32.00,Precision Point,North
+2024-01-29,Laptop Privacy Screen,Accessories,12,38.00,19.00,Security Plus,East
+2024-01-30,27" Monitor,Electronics,4,350.00,215.00,Display World,West
+2024-01-30,Presentation Remote,Accessories,9,45.00,22.00,Presentation Pro,South
+2024-01-31,Laptop Pro 15,Electronics,5,1200.00,750.00,Enterprise Tech,North
+2024-01-31,Wireless Charging Stand,Electronics,13,42.00,21.00,Power Tech,East
+2024-02-01,Ergonomic Keyboard,Accessories,6,95.00,47.00,Comfort Plus,West
+2024-02-01,USB-C Adapter Set,Accessories,20,25.00,12.00,Port Solutions,South
+2024-02-02,27" Monitor,Electronics,3,350.00,215.00,Display World,North
+2024-02-02,Laptop Cooling Stand,Accessories,11,48.00,24.00,Cool Systems,East
+2024-02-03,Portable Monitor 15.6",Electronics,4,220.00,115.00,Mobile Display,West
+2024-02-03,Laptop Pro 15,Electronics,2,1200.00,750.00,Tech Corp,South
