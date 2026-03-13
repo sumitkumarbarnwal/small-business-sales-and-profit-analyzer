@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: sales_analyzer_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-sumit@4321}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-business_db}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-sumit@4321}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sales_analyzer_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-sumit@4321}
+      DB_NAME: ${MYSQL_DATABASE:-business_db}
+      DB_MAX_RETRIES: "20"
+      DB_RETRY_DELAY: "3"
+    ports:
+      - "8501:8501"
+
+volumes:
+  mysql_data:

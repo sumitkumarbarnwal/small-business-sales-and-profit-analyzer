@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import io
 import base64
+import os
+import time
 import warnings
 warnings.filterwarnings('ignore')  # Suppress warnings
 
@@ -37,16 +39,29 @@ except ImportError:
 
 def connect_db():
     """Establish database connection with error handling"""
-    try:
-        return mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="sumit@4321",
-            database="business_db"
-        )
-    except mysql.connector.Error as err:
-        st.error(f"Database connection error: {err}")
-        return None
+    db_config = {
+        "host": os.getenv("DB_HOST", "localhost"),
+        "user": os.getenv("DB_USER", "root"),
+        "password": os.getenv("DB_PASSWORD", "sumit@4321"),
+        "database": os.getenv("DB_NAME", "business_db")
+    }
+
+    max_retries = int(os.getenv("DB_MAX_RETRIES", "10"))
+    retry_delay = int(os.getenv("DB_RETRY_DELAY", "3"))
+
+    # On cloud/local-without-db, fail fast (1 attempt, no delay)
+    is_cloud = not os.getenv("DB_HOST") and db_config["host"] == "localhost"
+    if is_cloud:
+        max_retries = 1
+        retry_delay = 0
+
+    for attempt in range(max_retries):
+        try:
+            return mysql.connector.connect(**db_config)
+        except mysql.connector.Error:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            return None
 
 # Initialize database tables if they don't exist
 def init_database():
@@ -164,8 +179,11 @@ def init_database():
         cursor.close()
         conn.close()
 
-# Call initialization
-init_database()
+# Call initialization (silently skip if DB not available)
+try:
+    init_database()
+except Exception:
+    pass
 
 # ================= AUTH ================= #
 
@@ -410,6 +428,25 @@ def detect_column_types(df):
             categorical_cols.append(col)
     
     return date_cols, numeric_cols, categorical_cols
+
+
+def format_compact_currency(value, currency_symbol="$"):
+    """Format currency using readable units like Lakhs, Millions, and Billions."""
+    if value is None or pd.isna(value):
+        return f"{currency_symbol}0"
+
+    sign = "-" if value < 0 else ""
+    abs_value = abs(float(value))
+
+    if abs_value >= 1_000_000_000:
+        return f"{sign}{currency_symbol}{abs_value / 1_000_000_000:.2f}B"
+    if abs_value >= 1_000_000:
+        return f"{sign}{currency_symbol}{abs_value / 1_000_000:.2f}M"
+    if abs_value >= 100_000:
+        return f"{sign}{currency_symbol}{abs_value / 100_000:.2f}L"
+    if abs_value >= 1_000:
+        return f"{sign}{currency_symbol}{abs_value:,.0f}"
+    return f"{sign}{currency_symbol}{abs_value:.2f}"
 
 def generate_insights(df, date_col, numeric_cols, categorical_cols):
     """Generate comprehensive business insights"""
@@ -1256,7 +1293,7 @@ def analytics_page():
             st.markdown(f"""
                 <div class='revenue-card'>
                     <div class='metric-label'>Total Revenue</div>
-                    <div class='metric-value'>${profit_metrics['total_revenue']:,.0f}</div>
+                    <div class='metric-value'>{format_compact_currency(profit_metrics['total_revenue'])}</div>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -1264,7 +1301,7 @@ def analytics_page():
             st.markdown(f"""
                 <div class='cost-card'>
                     <div class='metric-label'>Total Cost</div>
-                    <div class='metric-value'>${profit_metrics['total_cost']:,.0f}</div>
+                    <div class='metric-value'>{format_compact_currency(profit_metrics['total_cost'])}</div>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -1273,7 +1310,7 @@ def analytics_page():
             st.markdown(f"""
                 <div class='{profit_color}'>
                     <div class='metric-label'>Total Profit</div>
-                    <div class='metric-value'>${profit_metrics['total_profit']:,.0f}</div>
+                    <div class='metric-value'>{format_compact_currency(profit_metrics['total_profit'])}</div>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -1305,21 +1342,21 @@ def analytics_page():
             total = df[selected_revenue].sum()
             st.metric(
                 f"Total {selected_revenue}",
-                f"${total:,.2f}"
+                format_compact_currency(total)
             )
         
         with col3:
             avg = df[selected_revenue].mean()
             st.metric(
                 f"Average {selected_revenue}",
-                f"${avg:,.2f}"
+                format_compact_currency(avg)
             )
         
         with col4:
             max_val = df[selected_revenue].max()
             st.metric(
                 f"Max {selected_revenue}",
-                f"${max_val:,.2f}"
+                format_compact_currency(max_val)
             )
 
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -1778,7 +1815,7 @@ def profit_insights_page():
         st.markdown(f"""
             <div class='revenue-card'>
                 <div class='metric-label'>💵 Total Revenue</div>
-                <div class='metric-value'>${total_revenue:,.0f}</div>
+                <div class='metric-value'>{format_compact_currency(total_revenue)}</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -1786,7 +1823,7 @@ def profit_insights_page():
         st.markdown(f"""
             <div class='cost-card'>
                 <div class='metric-label'>💸 Total Cost</div>
-                <div class='metric-value'>${total_cost:,.0f}</div>
+                <div class='metric-value'>{format_compact_currency(total_cost)}</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -1795,7 +1832,7 @@ def profit_insights_page():
         st.markdown(f"""
             <div class='{profit_style}'>
                 <div class='metric-label'>💰 Net Profit</div>
-                <div class='metric-value'>${total_profit:,.0f}</div>
+                <div class='metric-value'>{format_compact_currency(total_profit)}</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -1938,14 +1975,22 @@ def profit_insights_page():
         
         # Detailed table
         with st.expander("📋 Detailed Category Profitability Table"):
-            styled_df = category_profit.style.format({
-                'Revenue': '${:,.2f}',
-                'Cost': '${:,.2f}',
-                'Profit': '${:,.2f}',
-                'Avg Margin %': '{:.2f}%',
-                'Avg ROI %': '{:.2f}%'
-            }).background_gradient(subset=['Profit'], cmap='RdYlGn')
-            
+            try:
+                styled_df = category_profit.style.format({
+                    'Revenue': '${:,.2f}',
+                    'Cost': '${:,.2f}',
+                    'Profit': '${:,.2f}',
+                    'Avg Margin %': '{:.2f}%',
+                    'Avg ROI %': '{:.2f}%'
+                }).background_gradient(subset=['Profit'], cmap='RdYlGn')
+            except ImportError:
+                styled_df = category_profit.style.format({
+                    'Revenue': '${:,.2f}',
+                    'Cost': '${:,.2f}',
+                    'Profit': '${:,.2f}',
+                    'Avg Margin %': '{:.2f}%',
+                    'Avg ROI %': '{:.2f}%'
+                })
             st.dataframe(styled_df, use_container_width=True)
     
     # Actionable Insights
@@ -3010,112 +3055,221 @@ def inventory_management_page():
 # ================= ADMIN DASHBOARD PAGE ================= #
 
 def admin_dashboard_page():
-    """Admin dashboard for owners"""
+    """Admin dashboard for owners — works with or without MySQL"""
     if not hasattr(st.session_state, 'user_role') or st.session_state.user_role != 'Owner':
         st.error("Access Denied: Admin privileges required")
         return
-    
-    st.title("Admin Dashboard")
-    
-    tabs = st.tabs(["User Management", "Business Overview", "System Monitoring"])
-    
+
+    st.title("🛡️ Admin Dashboard")
+
+    # Initialize cloud user store if not exists
+    if 'cloud_users' not in st.session_state:
+        st.session_state.cloud_users = [
+            {"id": 1, "username": "admin", "email": "admin@example.com",
+             "role": "Owner", "business_name": "Admin Account", "created_at": "2024-01-01"}
+        ]
+
+    conn = connect_db()
+    db_mode = conn is not None
+
+    tabs = st.tabs(["👥 User Management", "📊 Business Reports", "🖥️ System Monitoring"])
+
+    # ── TAB 1: User Management ──────────────────────────────────────────────────
     with tabs[0]:
-        st.subheader("User Management")
-        
-        conn = connect_db()
-        if conn:
-            query = "SELECT id, username, email, role, business_name, created_at FROM users"
-            users_df = pd.read_sql(query, conn)
+        st.subheader("👥 User Management")
+
+        if db_mode:
+            users_df = pd.read_sql(
+                "SELECT id, username, email, role, business_name, created_at FROM users", conn
+            )
             conn.close()
-            
-            st.dataframe(users_df, use_container_width=True)
-            
-            # Update user role
-            st.markdown("---")
-            st.subheader("Update User Role")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                user_id_to_update = st.number_input("User ID", min_value=1, step=1)
-            with col2:
-                new_role = st.selectbox("New Role", ["Owner", "Accountant", "Staff"])
-            with col3:
-                if st.button("Update Role"):
-                    conn = connect_db()
-                    if conn:
-                        cursor = conn.cursor()
-                        cursor.execute("UPDATE users SET role = %s WHERE id = %s", 
-                                     (new_role, user_id_to_update))
-                        conn.commit()
-                        cursor.close()
-                        conn.close()
-                        st.success("Role updated!")
-                        st.rerun()
-    
-    with tabs[1]:
-        st.subheader("Business Performance Overview")
-        
-        conn = connect_db()
-        if conn:
-            # Total sales data
-            query = "SELECT COUNT(*) as total_transactions, SUM(revenue) as total_revenue, SUM(profit) as total_profit FROM sales_data"
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute(query)
-            stats = cursor.fetchone()
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Transactions", f"{stats['total_transactions']:,}")
-            with col2:
-                st.metric("Total Revenue", f"${stats['total_revenue'] or 0:,.2f}")
-            with col3:
-                st.metric("Total Profit", f"${stats['total_profit'] or 0:,.2f}")
-            
-            # Expenses overview
-            cursor.execute("SELECT SUM(amount) as total_expenses FROM expenses")
-            expense_stats = cursor.fetchone()
-            
-            st.metric("Total Expenses", f"${expense_stats['total_expenses'] or 0:,.2f}")
-            
-            cursor.close()
-            conn.close()
-    
-    with tabs[2]:
-        st.subheader("System Monitoring")
-        
-        conn = connect_db()
-        if conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            # Database stats
-            cursor.execute("SELECT COUNT(*) as count FROM users")
-            user_count = cursor.fetchone()['count']
-            
-            cursor.execute("SELECT COUNT(*) as count FROM sales_data")
-            sales_count = cursor.fetchone()['count']
-            
-            cursor.execute("SELECT COUNT(*) as count FROM expenses")
-            expense_count = cursor.fetchone()['count']
-            
-            cursor.execute("SELECT COUNT(*) as count FROM products")
-            product_count = cursor.fetchone()['count']
-            
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Total Users", user_count)
-            with col2:
-                st.metric("Sales Records", sales_count)
-            with col3:
-                st.metric("Expense Records", expense_count)
-            with col4:
-                st.metric("Products", product_count)
-            
-            cursor.close()
-            conn.close()
-        
-        # Data quality monitoring
+        else:
+            st.info("ℹ️ Running in cloud mode — user changes are session-only.")
+            users_df = pd.DataFrame(st.session_state.cloud_users)
+
+        st.dataframe(users_df, use_container_width=True)
+
         st.markdown("---")
-        st.subheader("Data Quality Score")
-        st.info("System is operating normally ✅")
+        st.subheader("✏️ Edit User Details")
+
+        usernames = users_df["username"].tolist()
+        selected_user = st.selectbox("Select User to Edit", usernames)
+
+        if selected_user:
+            user_row = users_df[users_df["username"] == selected_user].iloc[0]
+
+            col1, col2 = st.columns(2)
+            with col1:
+                new_email = st.text_input("Email", value=str(user_row.get("email", "") or ""))
+                new_role = st.selectbox(
+                    "Role",
+                    ["Owner", "Accountant", "Staff"],
+                    index=["Owner", "Accountant", "Staff"].index(user_row["role"])
+                    if user_row["role"] in ["Owner", "Accountant", "Staff"] else 2
+                )
+            with col2:
+                new_business = st.text_input("Business Name", value=str(user_row.get("business_name", "") or ""))
+                new_password = st.text_input("New Password (leave blank to keep)", type="password")
+
+            if st.button("💾 Save Changes", use_container_width=True):
+                if db_mode:
+                    c2 = connect_db()
+                    if c2:
+                        cur = c2.cursor()
+                        cur.execute(
+                            "UPDATE users SET email=%s, role=%s, business_name=%s WHERE username=%s",
+                            (new_email, new_role, new_business, selected_user)
+                        )
+                        if new_password:
+                            hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+                            cur.execute("UPDATE users SET password=%s WHERE username=%s",
+                                        (hashed, selected_user))
+                        c2.commit()
+                        cur.close()
+                        c2.close()
+                        st.success(f"✅ User '{selected_user}' updated in database!")
+                        st.rerun()
+                else:
+                    for u in st.session_state.cloud_users:
+                        if u["username"] == selected_user:
+                            u["email"] = new_email
+                            u["role"] = new_role
+                            u["business_name"] = new_business
+                    st.success(f"✅ User '{selected_user}' updated (session only)!")
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("🗑️ Delete User")
+        del_user = st.selectbox("Select User to Delete", [u for u in usernames if u != "admin"],
+                                key="del_user_select")
+        if st.button("🗑️ Delete User", type="secondary"):
+            if db_mode:
+                c2 = connect_db()
+                if c2:
+                    cur = c2.cursor()
+                    cur.execute("DELETE FROM users WHERE username=%s", (del_user,))
+                    c2.commit()
+                    cur.close()
+                    c2.close()
+                    st.success(f"User '{del_user}' deleted!")
+                    st.rerun()
+            else:
+                st.session_state.cloud_users = [
+                    u for u in st.session_state.cloud_users if u["username"] != del_user
+                ]
+                st.success(f"User '{del_user}' removed from session!")
+                st.rerun()
+
+    # ── TAB 2: Business Reports ─────────────────────────────────────────────────
+    with tabs[1]:
+        st.subheader("📊 Business Performance Report")
+
+        df = st.session_state.get("df", None)
+
+        if db_mode:
+            c2 = connect_db()
+            if c2:
+                cursor = c2.cursor(dictionary=True)
+                cursor.execute(
+                    "SELECT COUNT(*) as txn, SUM(revenue) as rev, SUM(profit) as prof FROM sales_data"
+                )
+                stats = cursor.fetchone()
+                cursor.execute("SELECT SUM(amount) as exp FROM expenses")
+                exp_stats = cursor.fetchone()
+                cursor.close()
+                c2.close()
+
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Total Transactions", f"{stats['txn']:,}")
+                col2.metric("Total Revenue", format_compact_currency(stats['rev'] or 0))
+                col3.metric("Total Profit", format_compact_currency(stats['prof'] or 0))
+                col4.metric("Total Expenses", format_compact_currency(exp_stats['exp'] or 0))
+
+        if df is not None:
+            st.markdown("---")
+            st.markdown("### 📁 Uploaded Data Summary")
+
+            date_cols, numeric_cols, cat_cols = detect_column_types(df)
+
+            # Key metrics from uploaded data
+            rev_col = next((c for c in numeric_cols if 'rev' in c.lower()), None)
+            prof_col = next((c for c in numeric_cols if 'prof' in c.lower()), None)
+            cost_col = next((c for c in numeric_cols if 'cost' in c.lower()), None)
+
+            cols = st.columns(4)
+            cols[0].metric("Total Records", f"{len(df):,}")
+            if rev_col:
+                cols[1].metric("Total Revenue", format_compact_currency(df[rev_col].sum()))
+            if prof_col:
+                cols[2].metric("Total Profit", format_compact_currency(df[prof_col].sum()))
+            if cost_col:
+                cols[3].metric("Total Cost", format_compact_currency(df[cost_col].sum()))
+
+            # Revenue trend chart
+            if date_cols and rev_col:
+                st.markdown("#### 📈 Revenue Trend")
+                trend_df = df.groupby(date_cols[0])[rev_col].sum().reset_index()
+                fig = px.line(trend_df, x=date_cols[0], y=rev_col, title="Revenue Over Time",
+                              template="plotly_dark")
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Profit by category
+            cat_col = next((c for c in cat_cols if 'cat' in c.lower()), cat_cols[0] if cat_cols else None)
+            if cat_col and prof_col:
+                st.markdown("#### 🗂️ Profit by Category")
+                cat_df = df.groupby(cat_col)[prof_col].sum().reset_index().sort_values(prof_col, ascending=False)
+                fig2 = px.bar(cat_df, x=cat_col, y=prof_col, title="Profit by Category",
+                              color=prof_col, color_continuous_scale="RdYlGn",
+                              template="plotly_dark")
+                st.plotly_chart(fig2, use_container_width=True)
+
+            # Full data table
+            with st.expander("📋 View Full Data"):
+                st.dataframe(df, use_container_width=True)
+
+            # Download report
+            csv_data = df.to_csv(index=False).encode()
+            st.download_button("⬇️ Download Report as CSV", csv_data,
+                               file_name="admin_report.csv", mime="text/csv",
+                               use_container_width=True)
+        else:
+            if not db_mode:
+                st.info("📂 No data uploaded yet. Ask a staff member to upload sales data to see reports here.")
+
+    # ── TAB 3: System Monitoring ────────────────────────────────────────────────
+    with tabs[2]:
+        st.subheader("🖥️ System Monitoring")
+
+        if db_mode:
+            c2 = connect_db()
+            if c2:
+                cur = c2.cursor(dictionary=True)
+                cur.execute("SELECT COUNT(*) as count FROM users"); user_count = cur.fetchone()['count']
+                cur.execute("SELECT COUNT(*) as count FROM sales_data"); sales_count = cur.fetchone()['count']
+                cur.execute("SELECT COUNT(*) as count FROM expenses"); exp_count = cur.fetchone()['count']
+                cur.execute("SELECT COUNT(*) as count FROM products"); prod_count = cur.fetchone()['count']
+                cur.close(); c2.close()
+
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("👤 Total Users", user_count)
+                col2.metric("🧾 Sales Records", sales_count)
+                col3.metric("💸 Expense Records", exp_count)
+                col4.metric("📦 Products", prod_count)
+                st.success("✅ Database connected and operating normally.")
+            else:
+                st.warning("⚠️ Could not connect to database.")
+        else:
+            col1, col2 = st.columns(2)
+            col1.metric("👤 Session Users", len(st.session_state.get('cloud_users', [])))
+            col2.metric("📁 Data Rows Loaded", len(st.session_state.df) if st.session_state.get('df') is not None else 0)
+            st.info("☁️ Cloud mode: App is running without a database. All data is session-based.")
+
+        st.markdown("---")
+        st.subheader("ℹ️ App Info")
+        col1, col2 = st.columns(2)
+        col1.info(f"**Logged in as:** {st.session_state.get('username', 'admin')}")
+        col2.info(f"**Role:** {st.session_state.get('user_role', 'Owner')}")
+        st.success("✅ System is operating normally.")
 
 # ================= REPORTS PAGE ================= #
 
@@ -3359,13 +3513,13 @@ def show_executive_dashboard(df, numeric_cols):
     with col2:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
         if numeric_cols:
-            st.metric("Total Revenue", f"${df[numeric_cols[0]].sum():,.2f}")
+            st.metric("Total Revenue", format_compact_currency(df[numeric_cols[0]].sum()))
         st.markdown("</div>", unsafe_allow_html=True)
     
     with col3:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
         if numeric_cols:
-            st.metric("Average Value", f"${df[numeric_cols[0]].mean():,.2f}")
+            st.metric("Average Value", format_compact_currency(df[numeric_cols[0]].mean()))
         st.markdown("</div>", unsafe_allow_html=True)
     
     # Quick insights
